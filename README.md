@@ -1,4 +1,4 @@
-# Iht
+# Gochat
 
 Simple chat over TCP
 

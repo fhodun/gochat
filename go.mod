@@ -1,4 +1,4 @@
-module github.com/fhodun/iht
+module github.com/fhodun/gochat
 
 go 1.16
 
