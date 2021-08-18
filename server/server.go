@@ -3,27 +3,24 @@ package server
 import (
 	"net/http"
 
+	"github.com/fhodun/gochat/packets"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var (
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-)
-
 func handleWs(h *hub, w http.ResponseWriter, r *http.Request) {
-	nickname := r.Header.Get("iht-nickname")
-	if nickname == "" {
-		nickname = "anonim"
-	}
+	var (
+		upgrader websocket.Upgrader = websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		}
+		nickname string = r.Header.Get("nickname")
+	)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Warn(err)
 		return
 	}
 
@@ -31,8 +28,9 @@ func handleWs(h *hub, w http.ResponseWriter, r *http.Request) {
 		Nickname: nickname,
 		Hub:      h,
 		Conn:     conn,
-		Send:     make(chan []byte, 256),
+		Send:     make(chan packets.Message, 256),
 	}
+
 	c.Hub.Register <- c
 
 	go c.writePump()
@@ -40,18 +38,20 @@ func handleWs(h *hub, w http.ResponseWriter, r *http.Request) {
 }
 
 func RunServer(cmd *cobra.Command, args []string) {
-	port := args[0]
+	var (
+		port string = args[0]
+		h    *hub   = &hub{
+			Broadcast:  make(chan packets.Message),
+			Register:   make(chan *client),
+			Unregister: make(chan *client),
+			Clients:    make(map[*client]bool),
+		}
+	)
 
-	hub := &hub{
-		Broadcast:  make(chan []byte),
-		Register:   make(chan *client),
-		Unregister: make(chan *client),
-		Clients:    make(map[*client]bool),
-	}
-	go hub.run()
+	go h.run()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		handleWs(hub, w, r)
+		handleWs(h, w, r)
 	})
 
 	log.WithField("port", port).Info("Starting server")

@@ -2,13 +2,14 @@ package client
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
-	// "github.com/fhodun/gochat/models"
+	"github.com/fhodun/gochat/packets"
+	ui "github.com/gizak/termui/v3"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -28,8 +29,21 @@ func retreiveVariableFromInput(n *string, message string) error {
 		if err != nil {
 			return err
 		}
+		*n = strings.TrimSuffix(*n, "\n")
 	}
+
 	return nil
+}
+
+func findAndDelete(array []string, item string) []string {
+	index := 0
+	for _, i := range array {
+		if i != item {
+			array[index] = i
+			index++
+		}
+	}
+	return array[:index]
 }
 
 func RunClient(cmd *cobra.Command, args []string) {
@@ -56,38 +70,42 @@ func RunClient(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	// log.Printf("connecting to %s", serverUrl.String())
-	var resp *http.Response
-	c.conn, resp, err = websocket.DefaultDialer.Dial(serverUrl.String(), header)
+	c.conn, _, err = websocket.DefaultDialer.Dial(serverUrl.String(), header)
 	if err != nil {
 		log.Fatal(err)
 	}
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(resp.Body)
-	newStr := buf.String()
-	chatLayout.room.Rows = append(chatLayout.room.Rows, newStr)
 
+	defer ui.Close()
 	defer c.conn.Close()
 	done := make(chan struct{}, 1)
 
 	go func() {
 		defer close(done)
 		for {
-			messageType, messageRaw, err := c.conn.ReadMessage()
-			if err != nil {
+			var message packets.Message
+			if err := c.conn.ReadJSON(&message); err != nil {
 				log.Warn(err)
 				return
 			}
 
-			switch messageType {
-			case websocket.TextMessage:
-				// fmt.Println(string(messageRaw))
-				chatLayout.output.Rows = append(chatLayout.output.Rows, string(messageRaw))
+			switch message.Type {
+			case packets.NewMessage:
+				chatLayout.output.Rows = append(chatLayout.output.Rows, "["+message.Author+"]: "+message.Text)
+			case packets.ChattersList:
+				chatLayout.room.Rows = append(chatLayout.room.Rows, message.Content...)
+			case packets.RegisterChatter:
+				chatLayout.room.Rows = append(chatLayout.room.Rows, message.Text)
+			case packets.UnregisterChatter:
+				chatLayout.room.Rows = findAndDelete(chatLayout.room.Rows, message.Text)
 			default:
-				log.Printf("%d, %s", messageType, messageRaw)
+				log.WithFields(log.Fields{
+					"message.Type":   message.Type,
+					"message.Author": message.Author,
+					"message.Text":   message.Text,
+				}).Info("Unknown message type")
 			}
 		}
 	}()
 
-	log.Fatal(handleUiEvents(&chatLayout, c.conn))
+	log.Fatal(handleUiEvents(&chatLayout, c))
 }

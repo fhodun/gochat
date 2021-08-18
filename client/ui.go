@@ -2,6 +2,7 @@ package client
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	ui "github.com/gizak/termui/v3"
@@ -48,7 +49,7 @@ func RenderLayout() (chatLayout, error) {
 	return cl, nil
 }
 
-func handleUiEvents(cl *chatLayout, ws *websocket.Conn) error {
+func handleUiEvents(cl *chatLayout, c *client) error {
 	uiEvents := ui.PollEvents()
 	ticker := time.NewTicker(time.Second)
 	for {
@@ -56,6 +57,7 @@ func handleUiEvents(cl *chatLayout, ws *websocket.Conn) error {
 		case e := <-uiEvents:
 			switch e.ID {
 			case "<Escape>", "<C-c>":
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				ui.Close()
 				os.Exit(0)
 			case "<Resize>":
@@ -84,7 +86,7 @@ func handleUiEvents(cl *chatLayout, ws *websocket.Conn) error {
 						cl.input.Text = cl.input.Text[:len(cl.input.Text)-1]
 					}
 				case "<Enter>":
-					if err := ws.WriteMessage(websocket.TextMessage, []byte(cl.input.Text)); err != nil {
+					if err := c.conn.WriteMessage(websocket.TextMessage, []byte(strings.TrimSuffix(cl.input.Text, "\n"))); err != nil {
 						return err
 					}
 					cl.input.Text = ""

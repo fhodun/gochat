@@ -1,30 +1,24 @@
 package server
 
 import (
-	"bytes"
 	"time"
 
+	"github.com/fhodun/gochat/packets"
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
-	writeWait = 10 * time.Second
-	pongWait = 60 * time.Second
-	pingPeriod = (pongWait * 9) / 10
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 512
-)
-
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
 )
 
 type client struct {
 	Nickname string
 	Hub      *hub
 	Conn     *websocket.Conn
-	Send     chan []byte
+	Send     chan packets.Message
 }
 
 func (c *client) readPump() {
@@ -37,15 +31,24 @@ func (c *client) readPump() {
 	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
-		_, messageRaw, err := c.Conn.ReadMessage()
+		messageType, messageRaw, err := c.Conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Fatal(err)
-			}
-			break
+			// if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			// log.Warn(err)
+			// }
+			return
 		}
-		message := bytes.TrimSpace(bytes.Replace(messageRaw, newline, space, -1))
-		c.Hub.Broadcast <- message
+
+		switch messageType {
+		case websocket.TextMessage:
+			c.Hub.Broadcast <- packets.Message{
+				Type:   packets.NewMessage,
+				Author: c.Nickname,
+				Text:   string(messageRaw),
+			}
+		case websocket.CloseMessage:
+			return
+		}
 	}
 }
 
@@ -57,27 +60,14 @@ func (c *client) writePump() {
 	}()
 	for {
 		select {
-		case messageRaw, ok := <-c.Send:
+		case message, ok := <-c.Send:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := c.Conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-			w.Write(messageRaw)
-
-			// Add queued chat messages to the current websocket message.
-			n := len(c.Send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.Send)
-			}
-
-			if err := w.Close(); err != nil {
+			if err := c.Conn.WriteJSON(message); err != nil {
 				return
 			}
 		case <-ticker.C:
