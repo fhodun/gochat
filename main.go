@@ -3,40 +3,28 @@ package main
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
-)
 
-type FlagsType struct {
-	Port    string
-	Host    string
-}
-
-var (
-	Flags FlagsType
+	"github.com/fhodun/gochat/client"
+	"github.com/fhodun/gochat/server"
 )
 
 func main() {
-	var cmdServer *cobra.Command = &cobra.Command{
-		Use:     "server",
+	cmdServer := &cobra.Command{
+		Use:     "server [port]",
 		Aliases: []string{"s"},
 		Short:   "Run chat server",
-		Run:     RunServer,
+		Run:     server.RunServer,
 	}
 
-	var cmdClient *cobra.Command = &cobra.Command{
-		Use:     "client",
+	cmdClient := &cobra.Command{
+		Use:     "client [host:port]",
 		Aliases: []string{"c"},
 		Short:   "Run chat client",
-		Run:     RunClient,
+		Run:     client.RunClient,
 	}
 
-	var rootCmd *cobra.Command = &cobra.Command{Use: "app"}
+	rootCmd := &cobra.Command{Use: "app"}
 	rootCmd.AddCommand(cmdServer, cmdClient)
-
-	flag.StringVarP(&Flags.Port, "port", "p", "2137", "http port")
-	flag.StringVar(&Flags.Host, "host", "127.0.0.1", "http host")
-	
-	flag.Parse()
 
 	log.Fatal(rootCmd.Execute())
 }
