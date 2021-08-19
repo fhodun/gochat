@@ -15,12 +15,17 @@ const (
 )
 
 type client struct {
+	// Client nickname
 	Nickname string
-	Hub      *hub
-	Conn     *websocket.Conn
-	Send     chan packets.Message
+	// Server hub
+	Hub *hub
+	// Websocket connection with client
+	Conn *websocket.Conn
+	// Channel for sending messages
+	Send chan packets.Message
 }
 
+// Pump received messages from websocket to hub broadcast channel
 func (c *client) readPump() {
 	defer func() {
 		c.Hub.Unregister <- c
@@ -49,6 +54,7 @@ func (c *client) readPump() {
 	}
 }
 
+// Pump messages from channel to websocket connection
 func (c *client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {

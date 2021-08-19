@@ -16,10 +16,13 @@ import (
 )
 
 type client struct {
+	// Client nickname
 	nickname string
+	// Websocket connection
 	conn     *websocket.Conn
 }
 
+// Read input until variable isn't blank string
 func retreiveVariableFromInput(n *string, message string) error {
 	for *n == "" {
 		var err error
@@ -35,6 +38,7 @@ func retreiveVariableFromInput(n *string, message string) error {
 	return nil
 }
 
+// Find and delete array item
 func findAndDelete(array []string, item string) []string {
 	index := 0
 	for _, i := range array {
@@ -46,6 +50,7 @@ func findAndDelete(array []string, item string) []string {
 	return array[:index]
 }
 
+// Run chat client
 func RunClient(cmd *cobra.Command, args []string) {
 	var (
 		host      string      = args[0]
@@ -65,7 +70,7 @@ func RunClient(cmd *cobra.Command, args []string) {
 	}
 	header.Add("nickname", c.nickname)
 
-	chatLayout, err := RenderLayout()
+	chatLayout, err := renderLayout()
 	if err != nil {
 		log.Fatal(err)
 	}

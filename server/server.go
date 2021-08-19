@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Handle http request and upgrade it to websocket
 func handleWs(h *hub, w http.ResponseWriter, r *http.Request) {
 	var (
 		upgrader websocket.Upgrader = websocket.Upgrader{
@@ -37,6 +38,7 @@ func handleWs(h *hub, w http.ResponseWriter, r *http.Request) {
 	go c.readPump()
 }
 
+// Run chat server
 func RunServer(cmd *cobra.Command, args []string) {
 	var (
 		port string = args[0]

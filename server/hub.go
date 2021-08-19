@@ -5,12 +5,17 @@ import (
 )
 
 type hub struct {
-	Clients    map[*client]bool
-	Register   chan *client
+	// Clients map
+	Clients map[*client]bool
+	// Register new client
+	Register chan *client
+	// Unregister client
 	Unregister chan *client
-	Broadcast  chan packets.Message
+	// Broadcast message to every client
+	Broadcast chan packets.Message
 }
 
+// Run server hub
 func (h *hub) run() {
 	for {
 		select {

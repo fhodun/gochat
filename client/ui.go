@@ -11,13 +11,18 @@ import (
 )
 
 type chatLayout struct {
-	grid   *ui.Grid
-	room   *widgets.List
+	// Grid
+	grid *ui.Grid
+	// Room widget storing chat members
+	room *widgets.List
+	// Chat output storing chat messages
 	output *widgets.List
-	input  *widgets.Paragraph
+	// Message input
+	input *widgets.Paragraph
 }
 
-func RenderLayout() (chatLayout, error) {
+// Render UI layout
+func renderLayout() (chatLayout, error) {
 	if err := ui.Init(); err != nil {
 		return chatLayout{}, err
 	}
@@ -49,6 +54,7 @@ func RenderLayout() (chatLayout, error) {
 	return cl, nil
 }
 
+// Handle UI keyboard events
 func handleUiEvents(cl *chatLayout, c *client) error {
 	uiEvents := ui.PollEvents()
 	ticker := time.NewTicker(time.Second)
