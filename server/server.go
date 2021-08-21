@@ -40,6 +40,10 @@ func handleWs(h *hub, w http.ResponseWriter, r *http.Request) {
 
 // Run chat server
 func RunServer(cmd *cobra.Command, args []string) {
+	if l := len(args); l != 1 {
+		log.Fatalf("invalid arguments length, got: %d, want: 1", l)
+	}
+
 	var (
 		port string = args[0]
 		h    *hub   = &hub{

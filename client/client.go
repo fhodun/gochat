@@ -52,6 +52,10 @@ func findAndDelete(array []string, item string) []string {
 
 // Run chat client
 func RunClient(cmd *cobra.Command, args []string) {
+	if l := len(args); l != 1 {
+		log.Fatalf("invalid arguments length, got: %d, want: 1", l)
+	}
+
 	var (
 		host      string      = args[0]
 		header    http.Header = make(http.Header)
