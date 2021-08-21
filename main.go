@@ -13,6 +13,7 @@ func main() {
 		Use:     "server [port]",
 		Aliases: []string{"s"},
 		Short:   "Run chat server",
+		Example: "server 2137",
 		Run:     server.RunServer,
 	}
 
@@ -20,6 +21,7 @@ func main() {
 		Use:     "client [host:port]",
 		Aliases: []string{"c"},
 		Short:   "Run chat client",
+		Example: "server 127.0.0.1:2137",
 		Run:     client.RunClient,
 	}
 
