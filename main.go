@@ -23,7 +23,7 @@ func main() {
 		Run:     client.RunClient,
 	}
 
-	rootCmd := &cobra.Command{Use: "app"}
+	rootCmd := &cobra.Command{Use: "gochat"}
 	rootCmd.AddCommand(cmdServer, cmdClient)
 
 	log.Fatal(rootCmd.Execute())
